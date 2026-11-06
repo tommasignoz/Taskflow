@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+/* Reset and Global Font Settings */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --font-retro-code: 'VT323', 'Courier New', monospace;
+  --font-retro-pixel: 'Press Start 2P', monospace;
+  
+  /* Theme: Classic Win95 Teal (Default) */
+  --bg-desktop: #008080;
+  --win-bg: #c0c0c0;
+  --win-title-start: #000080;
+  --win-title-end: #1084d0;
+  --win-title-text: #ffffff;
+  --win-text: #000000;
+  --win-text-muted: #555555;
+  --win-light: #ffffff;
+  --win-dark: #808080;
+  --win-black: #000000;
+  --win-inset-bg: #ffffff;
+  --accent-color: #000080;
+  --accent-text: #ffffff;
+  --task-done-bg: #d4d0c8;
+  --ding-glow: #00ff66;
+}
+
+[data-theme="crt-green"] {
+  --bg-desktop: #040d06;
+  --win-bg: #0b1c0e;
+  --win-title-start: #0f3d17;
+  --win-title-end: #1b5924;
+  --win-title-text: #33ff66;
+  --win-text: #33ff66;
+  --win-text-muted: #1e7a37;
+  --win-light: #2aff64;
+  --win-dark: #072b0e;
+  --win-black: #020703;
+  --win-inset-bg: #051408;
+  --accent-color: #33ff66;
+  --accent-text: #051408;
+  --task-done-bg: #08210c;
+  --ding-glow: #33ff66;
+}
+
+[data-theme="crt-amber"] {
+  --bg-desktop: #110901;
+  --win-bg: #241403;
+  --win-title-start: #472600;
+  --win-title-end: #6b3900;
+  --win-title-text: #ffb833;
+  --win-text: #ffb833;
+  --win-text-muted: #8a5710;
+  --win-light: #ffc966;
+  --win-dark: #3b2004;
+  --win-black: #0a0500;
+  --win-inset-bg: #140b02;
+  --accent-color: #ffb833;
+  --accent-text: #140b02;
+  --task-done-bg: #2b1803;
+  --ding-glow: #ffcc00;
+}
+
+[data-theme="cyber-arcade"] {
+  --bg-desktop: #1a0826;
+  --win-bg: #2b1042;
+  --win-title-start: #b5179e;
+  --win-title-end: #7209b7;
+  --win-title-text: #f72585;
+  --win-text: #4cc9f0;
+  --win-text-muted: #795290;
+  --win-light: #f72585;
+  --win-dark: #480ca8;
+  --win-black: #10041a;
+  --win-inset-bg: #160724;
+  --accent-color: #f72585;
+  --accent-text: #ffffff;
+  --task-done-bg: #200c33;
+  --ding-glow: #4cc9f0;
+}
+
+body {
+  background-color: var(--bg-desktop);
+  color: var(--win-text);
+  font-family: var(--font-retro-code);
+  font-size: 18px;
+  line-height: 1.4;
+  user-select: none;
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color 0.2s ease;
+}
+
+/* Scrollbar retrò */
+::-webkit-scrollbar {
+  width: 14px;
+  background-color: var(--win-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--win-bg);
+  border-top: 2px solid var(--win-light);
+  border-left: 2px solid var(--win-light);
+  border-right: 2px solid var(--win-black);
+  border-bottom: 2px solid var(--win-black);
+}

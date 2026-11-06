@@ -1,0 +1,230 @@
+/* TaskFlow Retro OS Components & Animations */
+
+/* Effetto Scanlines CRT vintage */
+.scanlines-overlay {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.22) 50%
+  ), linear-gradient(
+    90deg,
+    rgba(255, 0, 0, 0.02),
+    rgba(0, 255, 0, 0.01),
+    rgba(0, 0, 255, 0.02)
+  );
+  background-size: 100% 4px, 6px 100%;
+}
+
+.scanlines-overlay::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: radial-gradient(circle, transparent 70%, rgba(0, 0, 0, 0.35) 100%);
+  opacity: 0.7;
+}
+
+/* Bordi 3D Bevel Retrò */
+.win-raised {
+  border-top: 2px solid var(--win-light);
+  border-left: 2px solid var(--win-light);
+  border-right: 2px solid var(--win-black);
+  border-bottom: 2px solid var(--win-black);
+}
+
+.win-sunken {
+  border-top: 2px solid var(--win-dark);
+  border-left: 2px solid var(--win-dark);
+  border-right: 2px solid var(--win-light);
+  border-bottom: 2px solid var(--win-light);
+}
+
+.win-frame {
+  background-color: var(--win-bg);
+  border-top: 3px solid var(--win-light);
+  border-left: 3px solid var(--win-light);
+  border-right: 3px solid var(--win-black);
+  border-bottom: 3px solid var(--win-black);
+  box-shadow: 4px 6px 0px rgba(0, 0, 0, 0.45);
+}
+
+/* Finestra Titolo */
+.win-titlebar {
+  background: linear-gradient(90deg, var(--win-title-start), var(--win-title-end));
+  color: var(--win-title-text);
+}
+
+/* Pulsanti Retrò */
+.retro-btn {
+  background-color: var(--win-bg);
+  color: var(--win-text);
+  font-family: var(--font-retro-code);
+  cursor: pointer;
+  border-top: 2px solid var(--win-light);
+  border-left: 2px solid var(--win-light);
+  border-right: 2px solid var(--win-black);
+  border-bottom: 2px solid var(--win-black);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.05s ease;
+  user-select: none;
+}
+
+.retro-btn:hover {
+  background-color: #dcdcdc;
+}
+
+[data-theme="crt-green"] .retro-btn:hover {
+  background-color: #123d1b;
+}
+
+[data-theme="crt-amber"] .retro-btn:hover {
+  background-color: #3b2205;
+}
+
+[data-theme="cyber-arcade"] .retro-btn:hover {
+  background-color: #3a1557;
+}
+
+.retro-btn:active {
+  border-top: 2px solid var(--win-black);
+  border-left: 2px solid var(--win-black);
+  border-right: 2px solid var(--win-light);
+  border-bottom: 2px solid var(--win-light);
+  transform: translate(1px, 1px);
+}
+
+/* Input Retrò */
+.retro-input-field {
+  background-color: var(--win-inset-bg);
+  color: var(--win-text);
+  font-family: var(--font-retro-code);
+  border-top: 2px solid var(--win-dark);
+  border-left: 2px solid var(--win-dark);
+  border-right: 2px solid var(--win-light);
+  border-bottom: 2px solid var(--win-light);
+  outline: none;
+}
+
+.retro-input-field:focus {
+  border-top: 2px solid var(--win-black);
+  border-left: 2px solid var(--win-black);
+  border-right: 2px solid var(--win-light);
+  border-bottom: 2px solid var(--win-light);
+  box-shadow: inset 0 0 4px rgba(0, 0, 128, 0.25);
+}
+
+/* Checkbox Retrò & Animazione Ding */
+.retro-checkbox {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  background-color: var(--win-inset-bg);
+  color: var(--accent-color);
+  border-top: 2px solid var(--win-dark);
+  border-left: 2px solid var(--win-dark);
+  border-right: 2px solid var(--win-light);
+  border-bottom: 2px solid var(--win-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: var(--font-retro-pixel);
+  font-size: 15px;
+  line-height: 1;
+  transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  user-select: none;
+}
+
+.retro-checkbox:hover {
+  transform: scale(1.08);
+}
+
+.retro-checkbox.checked {
+  background-color: #d1ffd6;
+  color: #007711;
+}
+
+[data-theme="crt-green"] .retro-checkbox.checked {
+  background-color: #174d22;
+  color: #33ff66;
+}
+
+[data-theme="crt-amber"] .retro-checkbox.checked {
+  background-color: #4d2b00;
+  color: #ffb833;
+}
+
+[data-theme="cyber-arcade"] .retro-checkbox.checked {
+  background-color: #4a0d66;
+  color: #4cc9f0;
+}
+
+/* MINIMO EFFETTO VISIVO DING QUANDO CLICCATA */
+.retro-checkbox.ding-active {
+  animation: retroDingPop 0.45s ease-out forwards;
+}
+
+@keyframes retroDingPop {
+  0% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(0, 255, 100, 0.7);
+  }
+  35% {
+    transform: scale(1.35) rotate(-6deg);
+    box-shadow: 0 0 16px 4px var(--ding-glow);
+    background-color: #ffff99;
+  }
+  65% {
+    transform: scale(0.95) rotate(3deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* Effetto scintilla "DING!" */
+.ding-sparkle {
+  position: absolute;
+  top: -16px;
+  right: -16px;
+  font-size: 13px;
+  pointer-events: none;
+  font-family: var(--font-retro-pixel);
+  color: #ffaa00;
+  animation: dingSparkleAnim 0.55s ease-out forwards;
+  z-index: 20;
+}
+
+@keyframes dingSparkleAnim {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.4);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px) scale(1.4);
+  }
+}
+
+/* Barra di avanzamento a righe */
+.progress-fill {
+  height: 100%;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--win-title-start),
+    var(--win-title-start) 8px,
+    var(--win-title-end) 8px,
+    var(--win-title-end) 16px
+  );
+  transition: width 0.3s ease;
+}
