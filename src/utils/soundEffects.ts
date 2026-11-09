@@ -1,18 +1,18 @@
-// Web Audio API Retro Sound Synthesizer
-// Genera suoni a 8-bit / vintage direttamente nel browser senza dipendenze esterne
+// Web Audio API Sound Synthesizer
+// Genera suoni sintetizzati direttamente nel browser senza dipendenze audio esterne
 
-let audioCtx = null;
+let audioCtx: AudioContext | null = null;
 
-function getAudioContext() {
+function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
   if (!audioCtx) {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (AudioContextClass) {
       audioCtx = new AudioContextClass();
     }
   }
   if (audioCtx && audioCtx.state === 'suspended') {
-    audioCtx.resume();
+    void audioCtx.resume();
   }
   return audioCtx;
 }
@@ -20,7 +20,7 @@ function getAudioContext() {
 /**
  * Suono "DING!" brillante e soddisfacente quando si spunta un'attività
  */
-export function playDingSound(enabled = true) {
+export function playDingSound(enabled = true): void {
   if (!enabled) return;
   const ctx = getAudioContext();
   if (!ctx) return;
@@ -32,7 +32,6 @@ export function playDingSound(enabled = true) {
   const gain1 = ctx.createGain();
   osc1.type = 'sine';
   osc1.frequency.setValueAtTime(1046.5, now);
-  // Piccolo pitch slide verso l'alto all'inizio per effetto "chime" vintage
   osc1.frequency.exponentialRampToValueAtTime(1174.66, now + 0.03); // D6
   osc1.frequency.setValueAtTime(1046.5, now + 0.06);
 
@@ -50,7 +49,7 @@ export function playDingSound(enabled = true) {
   gain2.gain.linearRampToValueAtTime(0.18, now + 0.004);
   gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
 
-  // Terza armonica sottile (E7 ~2637 Hz) per riverbero magico vintage
+  // Terza armonica sottile (E7 ~2637 Hz) per riverbero magico
   const osc3 = ctx.createOscillator();
   const gain3 = ctx.createGain();
   osc3.type = 'sine';
@@ -80,9 +79,9 @@ export function playDingSound(enabled = true) {
 }
 
 /**
- * Suono quando si deseleziona (uncheck): un "pop/bloop" retrò discendente
+ * Suono quando si deseleziona (uncheck): pop delicato discendente
  */
-export function playUndingSound(enabled = true) {
+export function playUndingSound(enabled = true): void {
   if (!enabled) return;
   const ctx = getAudioContext();
   if (!ctx) return;
@@ -107,22 +106,22 @@ export function playUndingSound(enabled = true) {
 }
 
 /**
- * Suono quando si aggiunge una nuova attività: arpeggio retrò 8-bit
+ * Suono quando si aggiunge una nuova attività: arpeggio melodico ascendente
  */
-export function playAddSound(enabled = true) {
+export function playAddSound(enabled = true): void {
   if (!enabled) return;
   const ctx = getAudioContext();
   if (!ctx) return;
 
   const now = ctx.currentTime;
-  const notes = [440, 554.37, 659.25]; // A4, C#5, E5 (accordo maggiore rapido)
+  const notes = [440, 554.37, 659.25]; // A4, C#5, E5
 
   notes.forEach((freq, idx) => {
     const startTime = now + idx * 0.04;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
-    osc.type = 'square';
+    osc.type = 'sine';
     osc.frequency.setValueAtTime(freq, startTime);
 
     gain.gain.setValueAtTime(0.0001, startTime);
@@ -138,9 +137,9 @@ export function playAddSound(enabled = true) {
 }
 
 /**
- * Suono quando si salva una modifica a un'attività (doppio bip retrò)
+ * Suono quando si salva una modifica a un'attività (doppio chime)
  */
-export function playEditSound(enabled = true) {
+export function playEditSound(enabled = true): void {
   if (!enabled) return;
   const ctx = getAudioContext();
   if (!ctx) return;
@@ -169,9 +168,9 @@ export function playEditSound(enabled = true) {
 }
 
 /**
- * Suono quando si elimina un'attività: zap basso retrò
+ * Suono quando si elimina un'attività
  */
-export function playDeleteSound(enabled = true) {
+export function playDeleteSound(enabled = true): void {
   if (!enabled) return;
   const ctx = getAudioContext();
   if (!ctx) return;
@@ -196,9 +195,9 @@ export function playDeleteSound(enabled = true) {
 }
 
 /**
- * Click meccanico vintage per i bottoni
+ * Click tattile per interazioni UI
  */
-export function playMechanicalClick(enabled = true) {
+export function playMechanicalClick(enabled = true): void {
   if (!enabled) return;
   const ctx = getAudioContext();
   if (!ctx) return;
@@ -211,7 +210,7 @@ export function playMechanicalClick(enabled = true) {
   osc.frequency.setValueAtTime(800, now);
   osc.frequency.exponentialRampToValueAtTime(120, now + 0.02);
 
-  gain.gain.setValueAtTime(0.15, now);
+  gain.gain.setValueAtTime(0.08, now);
   gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.025);
 
   osc.connect(gain);
