@@ -16,8 +16,7 @@ import {
   playDeleteSound,
   playEditSound,
 } from '../utils/soundEffects';
-
-const STORAGE_KEY = 'taskflow_crud_tasks';
+import { api } from '../services/api';
 
 export const INITIAL_TASKS: Task[] = [
   {
@@ -63,41 +62,46 @@ export const INITIAL_TASKS: Task[] = [
 ];
 
 /**
- * Hook per la gestione completa dello stato CRUD e delle statistiche di TaskFlow
+ * Hook per la gestione completa dello stato CRUD e delle statistiche di TaskFlow,
+ * integrato con backend Fastify (archiviazione volatile in memoria).
  */
 export function useTaskManager(soundEnabled = true): TaskManagerReturn {
-  // Caricamento iniziale da localStorage
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as Task[];
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      }
-    } catch (e: unknown) {
-      console.warn("Errore lettura localStorage:", e);
-    }
-    return INITIAL_TASKS;
-  });
-
+  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<SortByOption>('date-desc');
   const [animatingDingId, setAnimatingDingId] = useState<number | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string>('Sistema pronto • Seleziona una vista per gestire i task');
+  const [statusMessage, setStatusMessage] = useState<string>(
+    'Connessione al backend Fastify in corso...'
+  );
   const [recentlyDeleted, setRecentlyDeleted] = useState<Task | null>(null);
 
-  // Sincronizzazione persistente in localStorage
+  // Caricamento iniziale dal backend Fastify
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-    } catch (e: unknown) {
-      console.warn("Errore scrittura localStorage:", e);
+    let isMounted = true;
+
+    async function loadTasksFromBackend() {
+      try {
+        const backendTasks = await api.getTasks();
+        if (isMounted) {
+          setTasks(backendTasks);
+          setStatusMessage('Backend Fastify connesso (memoria volatile attiva)');
+        }
+      } catch (err) {
+        console.warn('Backend non raggiungibile o offline, utilizzo fallback locale:', err);
+        if (isMounted) {
+          setStatusMessage('Backend non raggiungibile, modalità locale attiva');
+        }
+      }
     }
-  }, [tasks]);
+
+    loadTasksFromBackend();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // CREATE (Aggiunta nuovo task)
   const createTask = useCallback(
@@ -105,8 +109,10 @@ export function useTaskManager(soundEnabled = true): TaskManagerReturn {
       const trimmed = text.trim();
       if (!trimmed) return false;
 
-      const newTask: Task = {
-        id: Date.now() + Math.floor(Math.random() * 1000),
+      // Aggiornamento ottimistico immediato
+      const tempId = Date.now() + Math.floor(Math.random() * 1000);
+      const optimisticTask: Task = {
+        id: tempId,
         text: trimmed,
         completed: false,
         priority,
@@ -114,9 +120,22 @@ export function useTaskManager(soundEnabled = true): TaskManagerReturn {
         createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 
-      setTasks((prev) => [newTask, ...prev]);
+      setTasks((prev) => [optimisticTask, ...prev]);
       playAddSound(soundEnabled);
-      setStatusMessage(`Nuova attività creata: "${trimmed.slice(0, 24)}..."`);
+      setStatusMessage(`Creazione attività: "${trimmed.slice(0, 24)}..."`);
+
+      // Sincronizzazione con backend Fastify
+      api
+        .createTask(trimmed, priority, category)
+        .then((createdTask) => {
+          setTasks((prev) => prev.map((t) => (t.id === tempId ? createdTask : t)));
+          setStatusMessage(`Nuova attività creata: "${createdTask.text.slice(0, 24)}..."`);
+        })
+        .catch((err) => {
+          console.error('Errore creazione task nel backend:', err);
+          setStatusMessage('Salvato localmente (errore sincronizzazione backend)');
+        });
+
       return true;
     },
     [soundEnabled]
@@ -136,6 +155,11 @@ export function useTaskManager(soundEnabled = true): TaskManagerReturn {
       setEditingTaskId(null);
       playEditSound(soundEnabled);
       setStatusMessage(`Attività #${id} salvata con successo`);
+
+      // Chiamata backend
+      api.updateTask(id, updates).catch((err) => {
+        console.error(`Errore aggiornamento task #${id}:`, err);
+      });
     },
     [soundEnabled]
   );
@@ -167,6 +191,11 @@ export function useTaskManager(soundEnabled = true): TaskManagerReturn {
           return task;
         })
       );
+
+      // Sincronizzazione backend
+      api.toggleTask(id).catch((err) => {
+        console.error(`Errore toggle task #${id}:`, err);
+      });
     },
     [soundEnabled]
   );
@@ -181,6 +210,11 @@ export function useTaskManager(soundEnabled = true): TaskManagerReturn {
       setRecentlyDeleted(taskToDelete);
       playDeleteSound(soundEnabled);
       setStatusMessage(`Attività eliminata. Fai clic su "Annulla" per ripristinare`);
+
+      // Sincronizzazione backend
+      api.deleteTask(id).catch((err) => {
+        console.error(`Errore eliminazione task #${id}:`, err);
+      });
     },
     [tasks, soundEnabled]
   );
@@ -188,10 +222,17 @@ export function useTaskManager(soundEnabled = true): TaskManagerReturn {
   // RESTORE (Annulla ultima eliminazione)
   const restoreDeletedTask = useCallback(() => {
     if (!recentlyDeleted) return;
-    setTasks((prev) => [recentlyDeleted, ...prev]);
+    const taskToRestore = recentlyDeleted;
+
+    setTasks((prev) => [taskToRestore, ...prev]);
     playAddSound(soundEnabled);
-    setStatusMessage(`Attività ripristinata: "${recentlyDeleted.text.slice(0, 24)}..."`);
+    setStatusMessage(`Attività ripristinata: "${taskToRestore.text.slice(0, 24)}..."`);
     setRecentlyDeleted(null);
+
+    // Sincronizzazione backend
+    api.restoreTask(taskToRestore).catch((err) => {
+      console.error('Errore ripristino task nel backend:', err);
+    });
   }, [recentlyDeleted, soundEnabled]);
 
   // DELETE MULTIPLO (Elimina completati)
@@ -204,6 +245,10 @@ export function useTaskManager(soundEnabled = true): TaskManagerReturn {
     setTasks((prev) => prev.filter((t) => !t.completed));
     playDeleteSound(soundEnabled);
     setStatusMessage(`Eliminate ${completedCount} attività completate`);
+
+    api.clearCompleted().catch((err) => {
+      console.error('Errore cancellazione completati:', err);
+    });
   }, [tasks, soundEnabled]);
 
   // TOGGLE ALL
@@ -217,13 +262,27 @@ export function useTaskManager(soundEnabled = true): TaskManagerReturn {
       playUndingSound(soundEnabled);
       setStatusMessage('Tutte le attività riaperte');
     }
+
+    api.toggleAll().catch((err) => {
+      console.error('Errore toggle all:', err);
+    });
   }, [tasks, soundEnabled]);
 
   // RESET DEMO
   const resetDemo = useCallback(() => {
-    setTasks(INITIAL_TASKS);
-    playAddSound(soundEnabled);
-    setStatusMessage('Dati demo ripristinati con successo');
+    api
+      .resetDemo()
+      .then((demoTasks) => {
+        setTasks(demoTasks);
+        playAddSound(soundEnabled);
+        setStatusMessage('Dati demo ripristinati con successo (Fastify RAM)');
+      })
+      .catch((err) => {
+        console.error('Errore reset demo su backend:', err);
+        setTasks(INITIAL_TASKS);
+        playAddSound(soundEnabled);
+        setStatusMessage('Dati demo ripristinati localmente');
+      });
   }, [soundEnabled]);
 
   // READ & FILTER & SORT (Memoized)
