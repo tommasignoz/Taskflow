@@ -1,117 +1,107 @@
-# 💾 TaskFlow v1.0 - Retrò Task Manager
+# ⚡ TaskFlow - Fullstack Task Management Dashboard
 
-> Un'applicazione di gestione task in puro stile retrò anni '90 / MS-DOS / Windows 95, con effetti sonori a 8-bit sintetizzati via Web Audio API, temi CRT e gestione completa dello stato con persistenza locale.
-
----
-
-## 📸 Caratteristiche Principali
-
-- 🕹️ **Interfaccia Retrò Anni '90**: Finestre con bordi 3D bevel, barre del titolo con gradiente, font pixel art (`VT323` e `Press Start 2P`) ed effetto CRT Scanlines attivabile.
-- 🎨 **Temi Multipli**:
-  - **Classico 95**: Stile desktop grigio/blu classico Windows.
-  - **CRT Verde**: Fosfori verdi stile terminale hacker/mainframe.
-  - **CRT Ambra**: Terminali ambra stile primi anni '80.
-  - **Cyber Arcade**: Neon viola e ciano arcade anni '80/'90.
-- 🔊 **Effetti Sonori 8-bit Integrati**: Generati dinamicamente nel browser con **Web Audio API** (nessun file audio esterno richiesto):
-  - *Click Meccanico* alla pressione dei tasti
-  - *Ding* armonico al completamento di una task
-  - Toni dedicati per aggiunta, modifica, cancellazione e ripristino
-  - Tasto Mute/Audio per attivare o disattivare i suoni in qualsiasi momento.
-- ⚡ **Gestione Attività Completa (CRUD)**:
-  - Creazione attività con priorità (Alta, Media, Bassa) e categoria
-  - Modifica rapida inline
-  - Completamento singolo o massivo (Toggle All)
-  - Eliminazione con notifica e pulsante di **Ripristino rapido (Undo)**
-  - Pulizia automatica delle completate
-- 🔍 **Filtri e Ricerca**:
-  - Ricerca testuale istantanea in tempo reale
-  - Filtro per stato: *Tutte*, *Attive*, *Completate*
-  - Filtro per priorità: *Alta*, *Media*, *Bassa*
-  - Ordinamento per data di creazione, priorità o titolo
-- 📊 **Dashboard & Statistiche**:
-  - Banner di stato con conteggio totale, attive, completate
-  - Barra di avanzamento stile pixel-art retrò
-  - Barra di stato inferiore con orologio di sistema e log delle ultime azioni
-- 💾 **Persistenza Dati**: Salvataggio automatico in `localStorage` con dati demo ripristinabili.
-
----
-
-## 🛠️ Stack Tecnologico
-
-- **Frontend**: [React 19](https://react.dev/)
-- **Bundler**: [Vite](https://vite.dev/)
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **Audio Engine**: Web Audio API (sintesi di oscillatori Sine, Square e White Noise)
-- **Linter**: [Oxlint](https://oxc.rs/)
-
----
-
-## 🚀 Avvio Rapido
-
-### Prerequisiti
-
-- [Node.js](https://nodejs.org/) (versione 18 o superiore raccomandata)
-- [npm](https://www.npmjs.com/)
-
-### Installazione
-
-1. Clona la repository:
-   ```bash
-   git clone https://github.com/tommasignoz/Taskflow.git
-   cd Taskflow
-   ```
-
-2. Installa le dipendenze:
-   ```bash
-   npm install
-   ```
-
-3. Avvia il server di sviluppo:
-   ```bash
-   npm run dev
-   ```
-
-4. Apri il browser all'indirizzo indicato nel terminale (solitamente `http://localhost:5173`).
-
----
-
-## 📜 Script Disponibili
-
-- `npm run dev`: Avvia il server di sviluppo Vite con Hot Module Replacement (HMR).
-- `npm run build`: Compila l'applicazione per la produzione nella cartella `dist/`.
-- `npm run preview`: Avvia un server locale per visualizzare in anteprima la build di produzione.
-- `npm run lint`: Esegue il controllo del codice con Oxlint ad alte prestazioni.
+Applicazione di gestione attività moderna ed enterprise suddivisa in architettura monorepo:
+- **Frontend**: [React 19](https://react.dev/), [Vite](https://vite.dev/), [Tailwind CSS v4](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com/) e TypeScript
+- **Backend**: [Fastify](https://fastify.dev/) con TypeScript e **memorizzazione volatile in-memory** (in RAM)
 
 ---
 
 ## 📂 Struttura del Progetto
 
-```
-├── public/                 # Asset statici (icone SVG, favicon)
-├── src/
-│   ├── assets/             # Immagini e grafica
-│   ├── components/         # Componenti UI modulari
-│   │   ├── StatsBanner.jsx # Banner riepilogo e barra di progresso
-│   │   ├── StatusBar.jsx   # Barra di stato con orologio e log
-│   │   ├── TaskFilters.jsx # Ricerca, filtri e ordinamento
-│   │   ├── TaskForm.jsx    # Form inserimento nuova task
-│   │   ├── TaskItem.jsx    # Singola riga task con controlli inline
-│   │   └── TopBar.jsx      # Barra del titolo della finestra con comandi
-│   ├── hooks/
-│   │   └── useTaskManager.js # Hook custom con logica CRUD e localStorage
-│   ├── utils/
-│   │   └── soundEffects.js   # Sintetizzatore sonoro Web Audio API
-│   ├── App.css             # Regole CSS retrò, scanlines e animazioni
-│   ├── App.jsx             # Componente root principale
-│   ├── index.css           # Configurazione Tailwind v4 e variabili tema
-│   └── main.jsx            # Entry point dell'applicazione React
-├── index.html              # Template HTML con font retrò Google Fonts
-├── package.json            # Metadati del progetto e dipendenze
-└── vite.config.js          # Configurazione di Vite con plugin React e Tailwind
+```text
+lezioni/
+├── frontend/               # Applicazione Client (React 19 + Vite + TypeScript)
+│   ├── src/
+│   │   ├── components/     # Componenti UI (dashboard, kanban, table, dialogs)
+│   │   ├── hooks/          # Custom hooks (useTaskManager integrato con API)
+│   │   ├── services/       # Client API per comunicare con il backend Fastify
+│   │   ├── types/          # Contratti di tipo TypeScript
+│   │   └── utils/          # Effetti sonori Web Audio API
+│   ├── public/             # Icone e asset statici
+│   ├── package.json        # Dipendenze e script frontend
+│   ├── tsconfig.json       # Configurazione TypeScript frontend
+│   └── vite.config.js      # Configurazione Vite con proxy /api -> backend:3001
+│
+├── backend/                # Server API (Fastify + TypeScript)
+│   ├── src/
+│   │   ├── routes/         # Rotte API Fastify (/api/tasks, /api/health)
+│   │   ├── store/          # Store volatile in-memory (RAM)
+│   │   ├── types/          # Tipi TypeScript (Task, DTO, ecc.)
+│   │   ├── app.ts          # Configurazione Fastify, CORS, plugin
+│   │   └── server.ts       # Entrypoint server (porta 3001)
+│   ├── package.json        # Dipendenze e script backend
+│   └── tsconfig.json       # Configurazione TypeScript backend
+│
+├── package.json            # Script root per gestione unificata
+└── README.md               # Documentazione
 ```
 
 ---
 
-## 📄 Licenza
+## 💾 Memorizzazione Volatile (In-Memory)
 
-Distribuito sotto licenza MIT.
+Il backend è progettato per salvare tutti i dati **esclusivamente in memoria RAM** (volatile):
+- All'avvio il server carica un dataset dimostrativo iniziale (`INITIAL_TASKS`).
+- Qualsiasi operazione (creazione, modifica, eliminazione, spunta) viene memorizzata nel singleton `TaskStore` in memoria.
+- **Nessun file o database persistente** viene scritto sul disco fisso: un riavvio del server azzera o ripristina lo stato iniziale.
+- È disponibile l'endpoint dedicato `POST /api/tasks/reset` per resettare i dati in memoria in qualsiasi momento.
+
+---
+
+## 📡 API Endpoints (Fastify)
+
+Tutti gli endpoint rispondono sotto il prefisso `/api`:
+
+| Metodo | Endpoint | Descrizione |
+|---|---|---|
+| `GET` | `/api/health` | Health check del server e stato memoria volatile |
+| `GET` | `/api/tasks` | Lista di tutti i task (supporta query: `status`, `search`, `sortBy`) |
+| `GET` | `/api/tasks/:id` | Recupera un singolo task per ID |
+| `POST` | `/api/tasks` | Crea un nuovo task (`{ text, priority?, category? }`) |
+| `PUT` | `/api/tasks/:id` | Modifica un task esistente (`{ text?, priority?, category?, completed? }`) |
+| `PATCH`| `/api/tasks/:id/toggle` | Inverte lo stato di completamento del task |
+| `DELETE`| `/api/tasks/:id` | Rimuove un task |
+| `POST` | `/api/tasks/restore` | Ripristina un task eliminato |
+| `POST` | `/api/tasks/clear-completed` | Rimuove tutti i task completati |
+| `POST` | `/api/tasks/toggle-all` | Completa o riapre tutti i task contemporaneamente |
+| `POST` | `/api/tasks/reset` | Ripristina i dati demo in memoria |
+| `GET` | `/api/tasks/stats` | Riepilogo statistico (totale, completati, in corso, %) |
+
+---
+
+## 🚀 Avvio del Progetto
+
+### 1. Avviare il Backend (Fastify)
+Dalla cartella principale del progetto:
+```bash
+npm run dev:backend
+```
+*Oppure entrando nella cartella `backend`:*
+```bash
+cd backend
+npm run dev
+```
+Il server Fastify si avvierà su `http://localhost:3001`.
+
+### 2. Avviare il Frontend (Vite + React)
+In un altro terminale, dalla cartella principale:
+```bash
+npm run dev:frontend
+```
+*Oppure entrando nella cartella `frontend`:*
+```bash
+cd frontend
+npm run dev
+```
+L'applicazione sarà accessibile su `http://localhost:5173`, con il proxy automatico configurato verso `http://localhost:3001` per tutte le chiamate `/api`.
+
+---
+
+## 📜 Script Disponibili nella Root
+
+- `npm run dev:backend`: Avvia il backend Fastify con `tsx watch` e ricaricamento a caldo.
+- `npm run dev:frontend`: Avvia il server di sviluppo Vite per il frontend.
+- `npm run build`: Compila sia backend (`tsc`) che frontend (`vite build`).
+- `npm run build:backend`: Compila il backend TypeScript nella cartella `backend/dist`.
+- `npm run build:frontend`: Compila il frontend nella cartella `frontend/dist`.
+- `npm run start:backend`: Avvia la versione compilata del backend (`node backend/dist/server.js`).
