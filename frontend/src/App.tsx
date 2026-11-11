@@ -16,7 +16,7 @@ export default function App() {
   const [soundEnabled, setSoundEnabled] = React.useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
-  const [currentView, setCurrentView] = React.useState<'kanban' | 'table'>('kanban');
+  const [currentView, setCurrentView] = React.useState<'kanban' | 'table' | 'database'>('kanban');
 
   // Filtri aggiuntivi per la toolbar
   const [selectedPriority, setSelectedPriority] = React.useState<string>('all');
@@ -149,21 +149,23 @@ export default function App() {
             <StatsOverview stats={stats} />
 
             {/* Toolbar: Filtri, Categorie, Ricerca, Ordinamento */}
-            <TaskToolbar
-              filter={filter}
-              onFilterChange={setFilter}
-              sortBy={sortBy}
-              onSortChange={setSortBy}
-              selectedPriority={selectedPriority}
-              onPriorityFilterChange={setSelectedPriority}
-              selectedCategory={selectedCategory}
-              onCategoryFilterChange={setSelectedCategory}
-              categories={categories}
-              stats={stats}
-              onClearCompleted={clearCompleted}
-            />
+            {currentView !== 'database' && (
+              <TaskToolbar
+                filter={filter}
+                onFilterChange={setFilter}
+                sortBy={sortBy}
+                onSortChange={setSortBy}
+                selectedPriority={selectedPriority}
+                onPriorityFilterChange={setSelectedPriority}
+                selectedCategory={selectedCategory}
+                onCategoryFilterChange={setSelectedCategory}
+                categories={categories}
+                stats={stats}
+                onClearCompleted={clearCompleted}
+              />
+            )}
 
-            {/* Central Area: Kanban e Tabella con Tabs */}
+            {/* Central Area: Kanban, Tabella e Database con Tabs */}
             <TaskViews
               currentView={currentView}
               onSelectView={setCurrentView}
@@ -173,6 +175,7 @@ export default function App() {
               onStartEdit={(id) => setEditingTaskId(id)}
               onDeleteTask={deleteTask}
               onOpenCreateDialog={() => setIsCreateOpen(true)}
+              onRefreshTasks={resetDemo}
             />
           </div>
         </main>

@@ -1,3 +1,7 @@
+import { eq, and, or, desc, asc, sql, type SQL } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import { tasksTable, type TaskSelect } from '../db/schema.js';
+import { seedDatabase, INITIAL_TASKS } from '../db/seed.js';
 import type {
   Task,
   Priority,
@@ -9,107 +13,80 @@ import type {
   SortByOption,
 } from '../types/task.js';
 
-export const INITIAL_TASKS: Task[] = [
-  {
-    id: 1,
-    text: 'Completare la revisione del Design System aziendale',
-    completed: false,
-    priority: 'alta',
-    createdAt: '09:30',
-    category: 'Lavoro',
-  },
-  {
-    id: 2,
-    text: 'Configurare componenti shadcn/ui con token accessibili ARIA',
-    completed: false,
-    priority: 'alta',
-    createdAt: '10:15',
-    category: 'Lavoro',
-  },
-  {
-    id: 3,
-    text: 'Analizzare metriche di produttività del team Q4',
-    completed: false,
-    priority: 'media',
-    createdAt: '11:00',
-    category: 'Generale',
-  },
-  {
-    id: 4,
-    text: 'Allineamento sprint settimanale con Engineering Lead',
-    completed: true,
-    priority: 'media',
-    createdAt: '08:45',
-    category: 'Lavoro',
-  },
-  {
-    id: 5,
-    text: 'Aggiornare documentazione tecnica API e contratti TypeScript',
-    completed: true,
-    priority: 'bassa',
-    createdAt: '08:00',
-    category: 'Studio',
-  },
-];
+export { INITIAL_TASKS };
+
+function mapRowToTask(row: TaskSelect): Task {
+  return {
+    id: Number(row.id),
+    text: row.text,
+    completed: row.completed,
+    priority: row.priority as Priority,
+    createdAt: row.createdAt,
+    category: row.category as Category,
+  };
+}
 
 /**
- * TaskStore: memorizzazione volatile in-memory (RAM)
- * I dati rimangono attivi per tutto il ciclo di vita del processo Node/Fastify
- * senza scrittura persistente su disco o database.
+ * TaskStore: persistenza su database PostgreSQL gestita con Drizzle ORM.
+ * Sostituisce la precedente memoria volatile in RAM con persistenza affidabile.
  */
 export class TaskStore {
-  private tasks: Task[];
-
-  constructor(initialData: Task[] = INITIAL_TASKS) {
-    this.tasks = initialData.map((t) => ({ ...t }));
-  }
-
-  public getAll(options?: {
+  public async getAll(options?: {
     status?: FilterStatus;
     query?: string;
     sortBy?: SortByOption;
-  }): Task[] {
-    let result = [...this.tasks];
+  }): Promise<Task[]> {
+    const conditions: SQL[] = [];
 
     if (options?.status) {
       if (options.status === 'pending') {
-        result = result.filter((t) => !t.completed);
+        conditions.push(eq(tasksTable.completed, false));
       } else if (options.status === 'completed') {
-        result = result.filter((t) => t.completed);
+        conditions.push(eq(tasksTable.completed, true));
       }
     }
 
     if (options?.query && options.query.trim()) {
-      const q = options.query.trim().toLowerCase();
-      result = result.filter(
-        (t) =>
-          t.text.toLowerCase().includes(q) ||
-          (t.category && t.category.toLowerCase().includes(q))
+      const q = `%${options.query.trim().toLowerCase()}%`;
+      conditions.push(
+        or(
+          sql`lower(${tasksTable.text}) LIKE ${q}`,
+          sql`lower(${tasksTable.category}) LIKE ${q}`
+        )!
       );
     }
 
-    if (options?.sortBy) {
-      const priorityWeight: Record<Priority, number> = { alta: 3, media: 2, bassa: 1 };
-      result.sort((a, b) => {
-        if (options.sortBy === 'priority-desc') {
-          const diff = (priorityWeight[b.priority] || 0) - (priorityWeight[a.priority] || 0);
-          if (diff !== 0) return diff;
-        }
-        if (options.sortBy === 'date-asc') {
-          return a.id - b.id;
-        }
-        return b.id - a.id;
-      });
+    let query = db.select().from(tasksTable);
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as typeof query;
     }
 
-    return result;
+    if (options?.sortBy === 'priority-desc') {
+      query = query.orderBy(
+        sql`CASE 
+          WHEN ${tasksTable.priority} = 'alta' THEN 3 
+          WHEN ${tasksTable.priority} = 'media' THEN 2 
+          WHEN ${tasksTable.priority} = 'bassa' THEN 1 
+          ELSE 0 END DESC`,
+        desc(tasksTable.id)
+      ) as typeof query;
+    } else if (options?.sortBy === 'date-asc') {
+      query = query.orderBy(asc(tasksTable.id)) as typeof query;
+    } else {
+      query = query.orderBy(desc(tasksTable.id)) as typeof query;
+    }
+
+    const rows = await query;
+    return rows.map(mapRowToTask);
   }
 
-  public getById(id: number): Task | undefined {
-    return this.tasks.find((t) => t.id === id);
+  public async getById(id: number): Promise<Task | undefined> {
+    const [row] = await db.select().from(tasksTable).where(eq(tasksTable.id, id));
+    return row ? mapRowToTask(row) : undefined;
   }
 
-  public create(input: CreateTaskInput): Task {
+  public async create(input: CreateTaskInput): Promise<Task> {
     const trimmed = input.text.trim();
     if (!trimmed) {
       throw new Error('Il testo del task non può essere vuoto');
@@ -118,93 +95,146 @@ export class TaskStore {
     const now = new Date();
     const timeFormatted = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    const newTask: Task = {
-      id: Date.now() + Math.floor(Math.random() * 1000),
-      text: trimmed,
-      completed: false,
-      priority: input.priority ?? 'media',
-      category: input.category ?? 'Generale',
-      createdAt: timeFormatted,
+    const [inserted] = await db
+      .insert(tasksTable)
+      .values({
+        text: trimmed,
+        completed: false,
+        priority: input.priority ?? 'media',
+        category: input.category ?? 'Generale',
+        createdAt: timeFormatted,
+      })
+      .returning();
+
+    return mapRowToTask(inserted);
+  }
+
+  public async update(id: number, input: UpdateTaskInput): Promise<Task | null> {
+    const toUpdate: Partial<typeof tasksTable.$inferInsert> = {
+      updatedAt: new Date(),
     };
 
-    // Inserisci in cima
-    this.tasks = [newTask, ...this.tasks];
-    return newTask;
+    if (input.text !== undefined) toUpdate.text = input.text.trim();
+    if (input.priority !== undefined) toUpdate.priority = input.priority;
+    if (input.category !== undefined) toUpdate.category = input.category;
+    if (input.completed !== undefined) toUpdate.completed = input.completed;
+
+    const [updated] = await db
+      .update(tasksTable)
+      .set(toUpdate)
+      .where(eq(tasksTable.id, id))
+      .returning();
+
+    return updated ? mapRowToTask(updated) : null;
   }
 
-  public update(id: number, input: UpdateTaskInput): Task | null {
-    const index = this.tasks.findIndex((t) => t.id === id);
-    if (index === -1) return null;
+  public async toggle(id: number): Promise<Task | null> {
+    const [toggled] = await db
+      .update(tasksTable)
+      .set({
+        completed: sql`NOT ${tasksTable.completed}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(tasksTable.id, id))
+      .returning();
 
-    const existing = this.tasks[index];
-    const updated: Task = {
-      ...existing,
-      text: input.text !== undefined ? input.text.trim() : existing.text,
-      priority: input.priority !== undefined ? input.priority : existing.priority,
-      category: input.category !== undefined ? input.category : existing.category,
-      completed: input.completed !== undefined ? input.completed : existing.completed,
+    return toggled ? mapRowToTask(toggled) : null;
+  }
+
+  public async delete(id: number): Promise<Task | null> {
+    const [deleted] = await db
+      .delete(tasksTable)
+      .where(eq(tasksTable.id, id))
+      .returning();
+
+    return deleted ? mapRowToTask(deleted) : null;
+  }
+
+  public async restore(task: Task): Promise<Task> {
+    const [restored] = await db
+      .insert(tasksTable)
+      .values({
+        id: task.id,
+        text: task.text,
+        completed: task.completed,
+        priority: task.priority,
+        category: task.category,
+        createdAt: task.createdAt,
+      })
+      .onConflictDoUpdate({
+        target: tasksTable.id,
+        set: {
+          text: task.text,
+          completed: task.completed,
+          priority: task.priority,
+          category: task.category,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+
+    return mapRowToTask(restored);
+  }
+
+  public async clearCompleted(): Promise<{ deletedCount: number; remainingCount: number }> {
+    const deleted = await db
+      .delete(tasksTable)
+      .where(eq(tasksTable.completed, true))
+      .returning();
+
+    const [stats] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(tasksTable);
+
+    return {
+      deletedCount: deleted.length,
+      remainingCount: Number(stats?.count || 0),
     };
-
-    this.tasks[index] = updated;
-    return updated;
   }
 
-  public toggle(id: number): Task | null {
-    const index = this.tasks.findIndex((t) => t.id === id);
-    if (index === -1) return null;
+  public async toggleAll(): Promise<{ allCompleted: boolean; updatedCount: number }> {
+    const [pendingCheck] = await db
+      .select({ pendingCount: sql<number>`count(*) filter (where ${tasksTable.completed} = false)` })
+      .from(tasksTable);
 
-    this.tasks[index] = {
-      ...this.tasks[index],
-      completed: !this.tasks[index].completed,
+    const hasPending = Number(pendingCheck?.pendingCount || 0) > 0;
+    const targetState = hasPending;
+
+    const updated = await db
+      .update(tasksTable)
+      .set({
+        completed: targetState,
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    return {
+      allCompleted: targetState,
+      updatedCount: updated.length,
     };
-
-    return this.tasks[index];
   }
 
-  public delete(id: number): Task | null {
-    const index = this.tasks.findIndex((t) => t.id === id);
-    if (index === -1) return null;
-
-    const [deleted] = this.tasks.splice(index, 1);
-    return deleted;
+  public async reset(): Promise<Task[]> {
+    await seedDatabase(true);
+    return this.getAll();
   }
 
-  public restore(task: Task): Task {
-    // Se non esiste già, reinserisce
-    const exists = this.tasks.some((t) => t.id === task.id);
-    if (!exists) {
-      this.tasks = [task, ...this.tasks];
-    }
-    return task;
-  }
+  public async getStats(): Promise<TaskStats> {
+    const [res] = await db
+      .select({
+        total: sql<number>`count(*)`,
+        completed: sql<number>`count(*) filter (where ${tasksTable.completed} = true)`,
+        pending: sql<number>`count(*) filter (where ${tasksTable.completed} = false)`,
+      })
+      .from(tasksTable);
 
-  public clearCompleted(): { deletedCount: number; remainingCount: number } {
-    const beforeCount = this.tasks.length;
-    this.tasks = this.tasks.filter((t) => !t.completed);
-    const deletedCount = beforeCount - this.tasks.length;
-    return { deletedCount, remainingCount: this.tasks.length };
-  }
-
-  public toggleAll(): { allCompleted: boolean; updatedCount: number } {
-    const allDone = this.tasks.length > 0 && this.tasks.every((t) => t.completed);
-    const targetState = !allDone;
-    this.tasks = this.tasks.map((t) => ({ ...t, completed: targetState }));
-    return { allCompleted: targetState, updatedCount: this.tasks.length };
-  }
-
-  public reset(): Task[] {
-    this.tasks = INITIAL_TASKS.map((t) => ({ ...t }));
-    return this.tasks;
-  }
-
-  public getStats(): TaskStats {
-    const total = this.tasks.length;
-    const completed = this.tasks.filter((t) => t.completed).length;
-    const pending = total - completed;
+    const total = Number(res?.total || 0);
+    const completed = Number(res?.completed || 0);
+    const pending = Number(res?.pending || 0);
     const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
     return { total, completed, pending, percent };
   }
 }
 
-// Istanza singleton volatile in-memory
 export const taskStore = new TaskStore();

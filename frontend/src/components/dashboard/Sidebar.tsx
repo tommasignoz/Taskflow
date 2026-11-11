@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   Kanban,
   Table as TableIcon,
+  Database,
   CheckCircle2,
   Clock,
   ListTodo,
@@ -25,8 +26,8 @@ interface SidebarProps {
   onToggleCollapse: () => void;
   mobileOpen: boolean;
   onCloseMobile: () => void;
-  currentView: 'kanban' | 'table';
-  onSelectView: (view: 'kanban' | 'table') => void;
+  currentView: 'kanban' | 'table' | 'database';
+  onSelectView: (view: 'kanban' | 'table' | 'database') => void;
   activeFilter: FilterStatus;
   onSelectFilter: (filter: FilterStatus) => void;
   stats: TaskStats;
@@ -158,6 +159,33 @@ export function Sidebar({
                   <span>Tabella / Lista</span>
                   <Badge variant="outline" className="ml-auto text-[10px] h-4 px-1.5 font-mono">
                     {stats.total}
+                  </Badge>
+                </span>
+              )}
+            </Button>
+
+            <Button
+              variant={currentView === 'database' ? 'secondary' : 'ghost'}
+              className={cn(
+                'w-full justify-start h-9 text-cyan-400 hover:text-cyan-300',
+                currentView === 'database' && 'bg-cyan-950/40 border border-cyan-500/40 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.2)]',
+                collapsed && 'justify-center px-0'
+              )}
+              onClick={() => {
+                onSelectView('database');
+                onCloseMobile();
+              }}
+              title="Database Explorer // Matrix"
+            >
+              <Database data-icon="inline-start" className="size-4 text-cyan-400" />
+              {!collapsed && (
+                <span className="flex-1 text-left truncate flex items-center justify-between">
+                  <span className="font-semibold">DB Matrix</span>
+                  <Badge
+                    variant="outline"
+                    className="ml-auto text-[9px] h-4 px-1 border-cyan-500/40 text-cyan-300 font-mono tracking-wider"
+                  >
+                    SQL
                   </Badge>
                 </span>
               )}

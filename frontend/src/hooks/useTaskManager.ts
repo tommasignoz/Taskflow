@@ -86,7 +86,7 @@ export function useTaskManager(soundEnabled = true): TaskManagerReturn {
         const backendTasks = await api.getTasks();
         if (isMounted) {
           setTasks(backendTasks);
-          setStatusMessage('Backend Fastify connesso (memoria volatile attiva)');
+          setStatusMessage('Backend Fastify connesso (PostgreSQL + Drizzle ORM)');
         }
       } catch (err) {
         console.warn('Backend non raggiungibile o offline, utilizzo fallback locale:', err);
@@ -275,7 +275,7 @@ export function useTaskManager(soundEnabled = true): TaskManagerReturn {
       .then((demoTasks) => {
         setTasks(demoTasks);
         playAddSound(soundEnabled);
-        setStatusMessage('Dati demo ripristinati con successo (Fastify RAM)');
+        setStatusMessage('Dati demo ripristinati con successo (PostgreSQL)');
       })
       .catch((err) => {
         console.error('Errore reset demo su backend:', err);

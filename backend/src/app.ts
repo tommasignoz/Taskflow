@@ -1,6 +1,8 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { taskRoutes } from './routes/taskRoutes.js';
+import { databaseRoutes } from './routes/databaseRoutes.js';
+import { checkDbConnection } from './db/index.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -25,16 +27,20 @@ export async function buildApp() {
 
   // Health check
   app.get('/api/health', async () => {
+    const isDbConnected = await checkDbConnection();
     return {
       status: 'ok',
       service: 'taskflow-backend',
       timestamp: new Date().toISOString(),
-      storage: 'volatile-in-memory',
+      database: 'postgresql',
+      orm: 'drizzle-orm',
+      dbConnected: isDbConnected,
     };
   });
 
   // Registrazione rotte /api
   await app.register(taskRoutes, { prefix: '/api' });
+  await app.register(databaseRoutes, { prefix: '/api' });
 
   return app;
 }
