@@ -6,9 +6,11 @@ import type {
   SortByOption,
   TaskStats,
   TaskUpdates,
+  DatabaseOverview,
+  QueryResult,
 } from '../types/task';
 
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const api = {
   async getTasks(params?: {
@@ -133,5 +135,28 @@ export const api = {
       throw new Error(`Errore recupero statistiche: ${res.statusText}`);
     }
     return res.json();
+  },
+
+  // Database Overview & Introspection
+  async getDatabaseOverview(): Promise<DatabaseOverview> {
+    const res = await fetch(`${API_BASE}/database/overview`);
+    if (!res.ok) {
+      throw new Error(`Errore recupero metadati database: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  // Esecuzione query SQL sicura (SELECT)
+  async runDatabaseQuery(query: string): Promise<QueryResult> {
+    const res = await fetch(`${API_BASE}/database/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || `Errore esecuzione query: ${res.statusText}`);
+    }
+    return data;
   },
 };

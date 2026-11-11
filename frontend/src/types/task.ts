@@ -13,6 +13,7 @@ export interface Task {
   priority: Priority;
   createdAt: string;
   category: Category;
+  updatedAt?: string;
 }
 
 export interface TaskStats {
@@ -53,4 +54,45 @@ export interface TaskManagerReturn {
   clearCompleted: () => void;
   toggleAll: () => void;
   resetDemo: () => void;
+}
+
+// Tipi per la vista Database Matrix
+export interface ColumnInfo {
+  name: string;
+  type: string;
+  nullable: boolean;
+  defaultValue: string | null;
+  isPrimary: boolean;
+}
+
+export interface TableInfo {
+  name: string;
+  rowCount: number;
+  size: string;
+  columns: ColumnInfo[];
+  rows: Record<string, any>[];
+}
+
+export interface DatabaseOverview {
+  status: 'ONLINE' | 'ERROR';
+  database: string;
+  engine: string;
+  version: string;
+  orm: string;
+  dbSize: string;
+  activeConnections: number;
+  latencyMs: number;
+  tablesCount: number;
+  tables: TableInfo[];
+  timestamp: string;
+  error?: string;
+}
+
+export interface QueryResult {
+  success: boolean;
+  executionTimeMs: number;
+  rowCount: number;
+  fields: string[];
+  rows: Record<string, any>[];
+  error?: string;
 }

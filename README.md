@@ -1,8 +1,11 @@
 # ⚡ TaskFlow - Fullstack Task Management Dashboard
 
 Applicazione di gestione attività moderna ed enterprise suddivisa in architettura monorepo:
-- **Frontend**: [React 19](https://react.dev/), [Vite](https://vite.dev/), [Tailwind CSS v4](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com/) e TypeScript
-- **Backend**: [Fastify](https://fastify.dev/) con TypeScript e **memorizzazione volatile in-memory** (in RAM)
+- **Package Manager**: [pnpm](https://pnpm.io/) workspace
+- **Frontend (Host)**: [React 19](https://react.dev/), [Vite](https://vite.dev/), [Tailwind CSS v4](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com/) e TypeScript
+- **Backend (Docker)**: [Node.js 22](https://nodejs.org/) con [Fastify](https://fastify.dev/) e TypeScript in container Docker (`taskflow-backend`)
+- **Database & ORM (Docker)**: [PostgreSQL 16](https://www.postgresql.org/) in container Docker (`taskflow-postgres`) gestito con [Drizzle ORM](https://orm.drizzle.team/)
+- **Accessibilità Rete**: Configurato per l'accesso da **localhost**, dalla **rete locale (LAN)** e da **Tailscale**
 
 ---
 
@@ -10,98 +13,104 @@ Applicazione di gestione attività moderna ed enterprise suddivisa in architettu
 
 ```text
 lezioni/
-├── frontend/               # Applicazione Client (React 19 + Vite + TypeScript)
+├── docker-compose.yml       # Servizi Docker: postgres (DB) + backend (Node.js 22 Fastify)
+├── pnpm-workspace.yaml      # Configurazione workspace pnpm (frontend + backend)
+├── pnpm-lock.yaml           # Lockfile pnpm
+├── frontend/                # Applicazione Client eseguita su Host (React 19 + Vite + TypeScript)
 │   ├── src/
-│   │   ├── components/     # Componenti UI (dashboard, kanban, table, dialogs)
-│   │   ├── hooks/          # Custom hooks (useTaskManager integrato con API)
-│   │   ├── services/       # Client API per comunicare con il backend Fastify
-│   │   ├── types/          # Contratti di tipo TypeScript
-│   │   └── utils/          # Effetti sonori Web Audio API
-│   ├── public/             # Icone e asset statici
-│   ├── package.json        # Dipendenze e script frontend
-│   ├── tsconfig.json       # Configurazione TypeScript frontend
-│   └── vite.config.js      # Configurazione Vite con proxy /api -> backend:3001
+│   │   ├── components/      # Componenti UI (dashboard, kanban, table, dialogs)
+│   │   ├── hooks/           # Custom hooks (useTaskManager integrato con API)
+│   │   ├── services/        # Client API per comunicare con il backend Fastify
+│   │   ├── types/           # Contratti di tipo TypeScript
+│   │   └── utils/           # Effetti sonori Web Audio API
+│   ├── public/              # Icone e asset statici
+│   ├── package.json         # Dipendenze e script frontend
+│   ├── tsconfig.json        # Configurazione TypeScript frontend
+│   └── vite.config.js       # Vite configurato su 0.0.0.0, allowedHosts e proxy API
 │
-├── backend/                # Server API (Fastify + TypeScript)
+├── backend/                 # Server API containerizzato su Docker (Node.js 22 + Fastify + Drizzle)
+│   ├── Dockerfile           # Immagine Docker Node.js 22 con pnpm e TypeScript
+│   ├── drizzle.config.ts    # Configurazione Drizzle Kit
 │   ├── src/
-│   │   ├── routes/         # Rotte API Fastify (/api/tasks, /api/health)
-│   │   ├── store/          # Store volatile in-memory (RAM)
-│   │   ├── types/          # Tipi TypeScript (Task, DTO, ecc.)
-│   │   ├── app.ts          # Configurazione Fastify, CORS, plugin
-│   │   └── server.ts       # Entrypoint server (porta 3001)
-│   ├── package.json        # Dipendenze e script backend
-│   └── tsconfig.json       # Configurazione TypeScript backend
+│   │   ├── db/              # Connessione DB, schema Drizzle e seed
+│   │   │   ├── index.ts     # Client PostgreSQL e pool Drizzle
+│   │   │   ├── schema.ts    # Schema tabella tasks
+│   │   │   ├── seed.ts      # Seeding iniziale dei task
+│   │   │   └── migrations/  # Migrazioni SQL generate da Drizzle Kit
+│   │   ├── routes/          # Rotte API Fastify (/api/tasks, /api/health)
+│   │   ├── store/           # TaskStore con query asincrone Drizzle ORM
+│   │   ├── types/           # Tipi TypeScript (Task, DTO, ecc.)
+│   │   ├── app.ts           # Configurazione Fastify, CORS, plugin
+│   │   └── server.ts        # Entrypoint server (porta 3001, binding 0.0.0.0)
+│   ├── package.json         # Dipendenze e script backend
+│   └── tsconfig.json        # Configurazione TypeScript backend
 │
-├── package.json            # Script root per gestione unificata
-└── README.md               # Documentazione
+├── package.json             # Script root per gestione unificata con pnpm
+└── README.md                # Documentazione
 ```
 
 ---
 
-## 💾 Memorizzazione Volatile (In-Memory)
+## 🐳 Architettura Docker (Backend + PostgreSQL)
 
-Il backend è progettato per salvare tutti i dati **esclusivamente in memoria RAM** (volatile):
-- All'avvio il server carica un dataset dimostrativo iniziale (`INITIAL_TASKS`).
-- Qualsiasi operazione (creazione, modifica, eliminazione, spunta) viene memorizzata nel singleton `TaskStore` in memoria.
-- **Nessun file o database persistente** viene scritto sul disco fisso: un riavvio del server azzera o ripristina lo stato iniziale.
-- È disponibile l'endpoint dedicato `POST /api/tasks/reset` per resettare i dati in memoria in qualsiasi momento.
+Il backend e il database sono completamente containerizzati con Docker Compose:
 
----
-
-## 📡 API Endpoints (Fastify)
-
-Tutti gli endpoint rispondono sotto il prefisso `/api`:
-
-| Metodo | Endpoint | Descrizione |
-|---|---|---|
-| `GET` | `/api/health` | Health check del server e stato memoria volatile |
-| `GET` | `/api/tasks` | Lista di tutti i task (supporta query: `status`, `search`, `sortBy`) |
-| `GET` | `/api/tasks/:id` | Recupera un singolo task per ID |
-| `POST` | `/api/tasks` | Crea un nuovo task (`{ text, priority?, category? }`) |
-| `PUT` | `/api/tasks/:id` | Modifica un task esistente (`{ text?, priority?, category?, completed? }`) |
-| `PATCH`| `/api/tasks/:id/toggle` | Inverte lo stato di completamento del task |
-| `DELETE`| `/api/tasks/:id` | Rimuove un task |
-| `POST` | `/api/tasks/restore` | Ripristina un task eliminato |
-| `POST` | `/api/tasks/clear-completed` | Rimuove tutti i task completati |
-| `POST` | `/api/tasks/toggle-all` | Completa o riapre tutti i task contemporaneamente |
-| `POST` | `/api/tasks/reset` | Ripristina i dati demo in memoria |
-| `GET` | `/api/tasks/stats` | Riepilogo statistico (totale, completati, in corso, %) |
+1. **`postgres`** (`taskflow-postgres`):
+   - Immagine `postgres:16-alpine`.
+   - Volume persistente `postgres_data` per conservare i task.
+   - Healthcheck automatico integrato.
+2. **`backend`** (`taskflow-backend`):
+   - Immagine personalizzata basata su `node:22-alpine` ([`backend/Dockerfile`](file:///C:/Users/Tommaso/orca/projects/lezioni/backend/Dockerfile)).
+   - Connessione interna di rete Docker a `postgres:5432`.
+   - Porta `3001` esposta sull'host (`0.0.0.0:3001`).
+   - Volume montato `./backend/src:/app/backend/src` per supporto **hot-reload** istantaneo.
+3. **`frontend` (Host)**:
+   - Viene eseguito direttamente sulla macchina host con Vite (`pnpm run dev:frontend`), consumando l'API esposta dal backend Docker.
 
 ---
 
-## 🚀 Avvio del Progetto
+## 🌐 Accesso da Rete Locale e Tailscale
 
-### 1. Avviare il Backend (Fastify)
+Sia il server Vite frontend (su host) che il backend Fastify (su Docker) sono configurati per ascoltare su tutte le interfacce (`0.0.0.0`) con `allowedHosts: true` e CORS abilitato:
+
+1. **Da questo computer (Locale)**:
+   - Frontend: `http://localhost:5173`
+   - Backend API: `http://localhost:3001`
+2. **Da qualsiasi dispositivo nella Rete Locale (LAN)** (stesso Wi-Fi o Ethernet):
+   - Frontend: `http://192.168.1.14:5173` (o l'IP locale della tua macchina)
+3. **Da remoto via Tailscale**:
+   - Frontend: `http://100.66.119.100:5173` (o tramite nome macchina MagicDNS)
+
+---
+
+## 🚀 Guida di Avvio Rapido
+
+### 1. Avviare Backend e Database con Docker
 Dalla cartella principale del progetto:
 ```bash
-npm run dev:backend
+pnpm run docker:up
 ```
-*Oppure entrando nella cartella `backend`:*
-```bash
-cd backend
-npm run dev
-```
-Il server Fastify si avvierà su `http://localhost:3001`.
+Questo comando avvia sia il container PostgreSQL che il container Fastify Node.js in background.
 
-### 2. Avviare il Frontend (Vite + React)
-In un altro terminale, dalla cartella principale:
+### 2. Avviare il Frontend (Vite su Host)
+In un terminale:
 ```bash
-npm run dev:frontend
+pnpm run dev:frontend
 ```
-*Oppure entrando nella cartella `frontend`:*
-```bash
-cd frontend
-npm run dev
-```
-L'applicazione sarà accessibile su `http://localhost:5173`, con il proxy automatico configurato verso `http://localhost:3001` per tutte le chiamate `/api`.
+L'applicazione è immediatamente disponibile su `http://localhost:5173`, `http://192.168.1.14:5173` e `http://<ip-tailscale>:5173`.
 
 ---
 
-## 📜 Script Disponibili nella Root
+## 📜 Script Disponibili nella Root (pnpm)
 
-- `npm run dev:backend`: Avvia il backend Fastify con `tsx watch` e ricaricamento a caldo.
-- `npm run dev:frontend`: Avvia il server di sviluppo Vite per il frontend.
-- `npm run build`: Compila sia backend (`tsc`) che frontend (`vite build`).
-- `npm run build:backend`: Compila il backend TypeScript nella cartella `backend/dist`.
-- `npm run build:frontend`: Compila il frontend nella cartella `frontend/dist`.
-- `npm run start:backend`: Avvia la versione compilata del backend (`node backend/dist/server.js`).
+- `pnpm run docker:up`: Avvia i container Docker (Backend Node.js + Database PostgreSQL).
+- `pnpm run docker:down`: Ferma tutti i container Docker.
+- `pnpm run docker:build`: Ricostruisce l'immagine Docker del backend e riavvia i container.
+- `pnpm run docker:logs`: Visualizza i log aggregati di tutti i container.
+- `pnpm run docker:logs:backend`: Log in tempo reale del container backend Node.js.
+- `pnpm run docker:logs:db`: Log in tempo reale del container PostgreSQL.
+- `pnpm run dev:frontend`: Avvia il server di sviluppo Vite su host.
+- `pnpm run db:push`: Applica lo schema Drizzle direttamente al database PostgreSQL.
+- `pnpm run db:seed`: Esegue il seeding dei dati demo.
+- `pnpm run db:studio`: Avvia Drizzle Studio per esplorare visivamente il database nel browser.
+- `pnpm run build`: Compila sia backend (`tsc`) che frontend (`vite build`).

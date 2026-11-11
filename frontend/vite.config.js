@@ -16,10 +16,14 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: '0.0.0.0', // Rende Vite accessibile su localhost, LAN (rete locale) e Tailscale
+    allowedHosts: true, // Consente l'accesso da qualsiasi host/IP (es. IP LAN, IP Tailscale, MagicDNS)
+    cors: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://127.0.0.1:3001',
         changeOrigin: true,
+        secure: false,
       },
     },
   },

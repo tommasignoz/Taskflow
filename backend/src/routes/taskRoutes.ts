@@ -17,15 +17,25 @@ export const taskRoutes: FastifyPluginAsync = async (fastify) => {
       sortBy?: SortByOption;
     };
   }>('/tasks', async (request, reply) => {
-    const { status, search, sortBy } = request.query;
-    const tasks = taskStore.getAll({ status, query: search, sortBy });
-    return reply.status(200).send(tasks);
+    try {
+      const { status, search, sortBy } = request.query;
+      const tasks = await taskStore.getAll({ status, query: search, sortBy });
+      return reply.status(200).send(tasks);
+    } catch (err: unknown) {
+      fastify.log.error(err);
+      return reply.status(500).send({ error: 'Errore nel recupero dei task dal database' });
+    }
   });
 
   // GET /api/tasks/stats - Statistiche dei task
   fastify.get('/tasks/stats', async (_request, reply) => {
-    const stats = taskStore.getStats();
-    return reply.status(200).send(stats);
+    try {
+      const stats = await taskStore.getStats();
+      return reply.status(200).send(stats);
+    } catch (err: unknown) {
+      fastify.log.error(err);
+      return reply.status(500).send({ error: 'Errore nel calcolo delle statistiche' });
+    }
   });
 
   // GET /api/tasks/:id - Singolo task
@@ -37,12 +47,16 @@ export const taskRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'ID non valido' });
     }
 
-    const task = taskStore.getById(id);
-    if (!task) {
-      return reply.status(404).send({ error: 'Task non trovato' });
+    try {
+      const task = await taskStore.getById(id);
+      if (!task) {
+        return reply.status(404).send({ error: 'Task non trovato' });
+      }
+      return reply.status(200).send(task);
+    } catch (err: unknown) {
+      fastify.log.error(err);
+      return reply.status(500).send({ error: 'Errore nel recupero del task' });
     }
-
-    return reply.status(200).send(task);
   });
 
   // POST /api/tasks - Crea un nuovo task
@@ -56,10 +70,11 @@ export const taskRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     try {
-      const newTask = taskStore.create({ text, priority, category });
+      const newTask = await taskStore.create({ text, priority, category });
       return reply.status(201).send(newTask);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Errore nella creazione del task';
+      fastify.log.error(err);
       return reply.status(400).send({ error: message });
     }
   });
@@ -74,12 +89,16 @@ export const taskRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'ID non valido' });
     }
 
-    const updated = taskStore.update(id, request.body || {});
-    if (!updated) {
-      return reply.status(404).send({ error: 'Task non trovato' });
+    try {
+      const updated = await taskStore.update(id, request.body || {});
+      if (!updated) {
+        return reply.status(404).send({ error: 'Task non trovato' });
+      }
+      return reply.status(200).send(updated);
+    } catch (err: unknown) {
+      fastify.log.error(err);
+      return reply.status(500).send({ error: 'Errore nell\'aggiornamento del task' });
     }
-
-    return reply.status(200).send(updated);
   });
 
   // PATCH /api/tasks/:id/toggle - Inverte lo stato completed
@@ -91,12 +110,16 @@ export const taskRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'ID non valido' });
     }
 
-    const toggled = taskStore.toggle(id);
-    if (!toggled) {
-      return reply.status(404).send({ error: 'Task non trovato' });
+    try {
+      const toggled = await taskStore.toggle(id);
+      if (!toggled) {
+        return reply.status(404).send({ error: 'Task non trovato' });
+      }
+      return reply.status(200).send(toggled);
+    } catch (err: unknown) {
+      fastify.log.error(err);
+      return reply.status(500).send({ error: 'Errore nella modifica dello stato del task' });
     }
-
-    return reply.status(200).send(toggled);
   });
 
   // DELETE /api/tasks/:id - Elimina un task
@@ -108,12 +131,16 @@ export const taskRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'ID non valido' });
     }
 
-    const deleted = taskStore.delete(id);
-    if (!deleted) {
-      return reply.status(404).send({ error: 'Task non trovato' });
+    try {
+      const deleted = await taskStore.delete(id);
+      if (!deleted) {
+        return reply.status(404).send({ error: 'Task non trovato' });
+      }
+      return reply.status(200).send(deleted);
+    } catch (err: unknown) {
+      fastify.log.error(err);
+      return reply.status(500).send({ error: 'Errore nella cancellazione del task' });
     }
-
-    return reply.status(200).send(deleted);
   });
 
   // POST /api/tasks/restore - Ripristina un task precedentemente eliminato
@@ -125,25 +152,45 @@ export const taskRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'Oggetto task non valido per il ripristino' });
     }
 
-    const restored = taskStore.restore(task);
-    return reply.status(200).send(restored);
+    try {
+      const restored = await taskStore.restore(task);
+      return reply.status(200).send(restored);
+    } catch (err: unknown) {
+      fastify.log.error(err);
+      return reply.status(500).send({ error: 'Errore nel ripristino del task' });
+    }
   });
 
   // POST /api/tasks/clear-completed - Rimuove tutti i task completati
   fastify.post('/tasks/clear-completed', async (_request, reply) => {
-    const result = taskStore.clearCompleted();
-    return reply.status(200).send(result);
+    try {
+      const result = await taskStore.clearCompleted();
+      return reply.status(200).send(result);
+    } catch (err: unknown) {
+      fastify.log.error(err);
+      return reply.status(500).send({ error: 'Errore nella cancellazione dei task completati' });
+    }
   });
 
   // POST /api/tasks/toggle-all - Inverte lo stato di tutti i task
   fastify.post('/tasks/toggle-all', async (_request, reply) => {
-    const result = taskStore.toggleAll();
-    return reply.status(200).send(result);
+    try {
+      const result = await taskStore.toggleAll();
+      return reply.status(200).send(result);
+    } catch (err: unknown) {
+      fastify.log.error(err);
+      return reply.status(500).send({ error: 'Errore nell\'inversione dello stato dei task' });
+    }
   });
 
   // POST /api/tasks/reset - Ripristina i dati demo iniziali
   fastify.post('/tasks/reset', async (_request, reply) => {
-    const tasks = taskStore.reset();
-    return reply.status(200).send(tasks);
+    try {
+      const tasks = await taskStore.reset();
+      return reply.status(200).send(tasks);
+    } catch (err: unknown) {
+      fastify.log.error(err);
+      return reply.status(500).send({ error: 'Errore nel reset dei dati demo' });
+    }
   });
 };

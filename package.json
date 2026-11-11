@@ -1,15 +1,27 @@
 {
   "name": "taskflow-workspace",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
-  "description": "TaskFlow - Monorepo with React 19 Frontend and Fastify TypeScript Backend (Volatile In-Memory)",
+  "description": "TaskFlow - Monorepo with React 19 Frontend and Dockerized Fastify Backend powered by PostgreSQL and Drizzle ORM",
   "scripts": {
-    "dev:backend": "npm --prefix backend run dev",
-    "dev:frontend": "npm --prefix frontend run dev",
-    "build": "npm --prefix backend run build && npm --prefix frontend run build",
-    "build:backend": "npm --prefix backend run build",
-    "build:frontend": "npm --prefix frontend run build",
-    "start:backend": "npm --prefix backend run start",
-    "lint:frontend": "npm --prefix frontend run lint"
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:build": "docker compose up --build -d",
+    "docker:logs": "docker compose logs -f",
+    "docker:logs:backend": "docker compose logs -f backend",
+    "docker:logs:db": "docker compose logs -f postgres",
+    "db:generate": "pnpm --filter ./backend run db:generate",
+    "db:push": "pnpm --filter ./backend run db:push",
+    "db:seed": "pnpm --filter ./backend run db:seed",
+    "db:studio": "pnpm --filter ./backend run db:studio",
+    "dev:backend": "docker compose up -d backend",
+    "dev:backend:host": "pnpm --filter ./backend run dev",
+    "dev:frontend": "pnpm --filter ./frontend run dev",
+    "dev": "docker compose up -d && pnpm run dev:frontend",
+    "build": "pnpm --filter ./backend run build && pnpm --filter ./frontend run build",
+    "build:backend": "pnpm --filter ./backend run build",
+    "build:frontend": "pnpm --filter ./frontend run build",
+    "start:backend": "pnpm --filter ./backend run start",
+    "lint:frontend": "pnpm --filter ./frontend run lint"
   }
 }
