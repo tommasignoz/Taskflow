@@ -11,6 +11,8 @@ import {
   RotateCcw,
   Sparkles,
   X,
+  ShieldCheck,
+  Key,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +38,8 @@ interface TopBarProps {
   hasCompletedTasks: boolean;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
+  currentUser?: { name?: string; email?: string } | null;
+  onOpenAuth?: () => void;
 }
 
 export function TopBar({
@@ -50,6 +54,8 @@ export function TopBar({
   hasCompletedTasks,
   isDarkMode,
   onToggleDarkMode,
+  currentUser,
+  onOpenAuth,
 }: TopBarProps) {
   const searchInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -142,6 +148,33 @@ export function TopBar({
           <span className="hidden xs:inline">Nuova Attività</span>
         </Button>
 
+        {/* Cyber Auth Badge / Button */}
+        {onOpenAuth && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onOpenAuth}
+            className={
+              currentUser
+                ? 'border-emerald-500/40 bg-emerald-950/20 text-emerald-300 hover:bg-emerald-950/40 text-xs font-mono px-2.5 h-8 hidden sm:inline-flex'
+                : 'border-cyan-500/40 bg-cyan-950/20 text-cyan-300 hover:bg-cyan-950/40 text-xs font-mono px-2.5 h-8 hidden sm:inline-flex shadow-[0_0_10px_rgba(6,182,212,0.15)]'
+            }
+            title={currentUser ? `Autenticato come ${currentUser.email}` : 'Accesso richiesto (/api/me: 401)'}
+          >
+            {currentUser ? (
+              <>
+                <ShieldCheck data-icon="inline-start" className="size-3.5 text-emerald-400" />
+                <span className="max-w-[120px] truncate">{currentUser.name || 'Operatore'}</span>
+              </>
+            ) : (
+              <>
+                <Key data-icon="inline-start" className="size-3.5 text-cyan-400" />
+                <span>Accedi // 401</span>
+              </>
+            )}
+          </Button>
+        )}
+
         {/* Theme Toggle Button */}
         <Button
           variant="ghost"
@@ -170,6 +203,12 @@ export function TopBar({
             <DropdownMenuLabel>Azioni Globali</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
+              {onOpenAuth && (
+                <DropdownMenuItem onClick={onOpenAuth}>
+                  <ShieldCheck data-icon="inline-start" className="size-4 text-cyan-400" />
+                  <span>Terminale Auth // {currentUser ? 'Profilo' : 'Accedi'}</span>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={onToggleAll}>
                 <CheckSquare data-icon="inline-start" className="size-4" />
                 <span>Inverti tutti i task</span>

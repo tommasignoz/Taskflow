@@ -3,16 +3,18 @@ import {
   Kanban as KanbanIcon,
   Table as TableIcon,
   Database as DatabaseIcon,
+  ShieldCheck as ShieldIcon,
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { KanbanView } from './KanbanView';
 import { TableView } from './TableView';
 import { DatabaseScreen } from './DatabaseScreen';
+import { AuthScreen } from '../auth/AuthScreen';
 import type { Task } from '@/types/task';
 
 interface TaskViewsProps {
-  currentView: 'kanban' | 'table' | 'database';
-  onSelectView: (view: 'kanban' | 'table' | 'database') => void;
+  currentView: 'kanban' | 'table' | 'database' | 'auth';
+  onSelectView: (view: 'kanban' | 'table' | 'database' | 'auth') => void;
   tasks: Task[];
   animatingDingId: number | null;
   onToggleTask: (id: number) => void;
@@ -36,7 +38,7 @@ export function TaskViews({
   return (
     <Tabs
       value={currentView}
-      onValueChange={(val) => onSelectView(val as 'kanban' | 'table' | 'database')}
+      onValueChange={(val) => onSelectView(val as 'kanban' | 'table' | 'database' | 'auth')}
       className="flex flex-col gap-3 w-full"
     >
       <div className="flex items-center justify-between">
@@ -56,11 +58,20 @@ export function TaskViews({
             <DatabaseIcon data-icon="inline-start" className="size-3.5 text-cyan-400" />
             <span>DB Matrix</span>
           </TabsTrigger>
+          <TabsTrigger
+            value="auth"
+            className="text-xs px-3 text-cyan-400 data-[state=active]:text-cyan-300 data-[state=active]:bg-cyan-950/40"
+          >
+            <ShieldIcon data-icon="inline-start" className="size-3.5 text-cyan-400" />
+            <span>Terminale Auth</span>
+          </TabsTrigger>
         </TabsList>
 
         <span className="text-xs text-muted-foreground font-mono">
           {currentView === 'database' ? (
             <span className="text-cyan-400 font-semibold">PostgreSQL // Drizzle Node</span>
+          ) : currentView === 'auth' ? (
+            <span className="text-cyan-400 font-semibold">Better Auth // Session Core</span>
           ) : (
             `Visualizzando ${tasks.length} task`
           )}
@@ -91,6 +102,12 @@ export function TaskViews({
 
       <TabsContent value="database" className="mt-0 outline-none">
         <DatabaseScreen onRefreshTasks={onRefreshTasks} />
+      </TabsContent>
+
+      <TabsContent value="auth" className="mt-0 outline-none">
+        <div className="rounded-xl border border-cyan-500/30 overflow-hidden bg-card/60 backdrop-blur-md">
+          <AuthScreen onAuthenticated={() => onSelectView('kanban')} />
+        </div>
       </TabsContent>
     </Tabs>
   );

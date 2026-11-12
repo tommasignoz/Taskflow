@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { taskRoutes } from './routes/taskRoutes.js';
 import { databaseRoutes } from './routes/databaseRoutes.js';
+import { authRoutes } from './routes/authRoutes.js';
 import { checkDbConnection } from './db/index.js';
 
 export async function buildApp() {
@@ -18,11 +19,13 @@ export async function buildApp() {
     }
   );
 
-  // Registrazione CORS per comunicare con il frontend
+  // Registrazione CORS per comunicare con il frontend (inclusi cookie e credenziali di autenticazione)
   await app.register(cors, {
     origin: true,
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+    exposedHeaders: ['Set-Cookie'],
   });
 
   // Health check
@@ -34,11 +37,13 @@ export async function buildApp() {
       timestamp: new Date().toISOString(),
       database: 'postgresql',
       orm: 'drizzle-orm',
+      auth: 'better-auth',
       dbConnected: isDbConnected,
     };
   });
 
   // Registrazione rotte /api
+  await app.register(authRoutes, { prefix: '/api' });
   await app.register(taskRoutes, { prefix: '/api' });
   await app.register(databaseRoutes, { prefix: '/api' });
 
