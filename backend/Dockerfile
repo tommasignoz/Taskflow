@@ -5,15 +5,12 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
-# Copia definizioni workspace e dipendenze per massimizzare la cache dei layer
+# Copia definizioni workspace e dipendenze
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
-COPY backend/package.json ./backend/
+COPY backend ./backend
 
 # Installa le dipendenze
 RUN pnpm --filter ./backend install --frozen-lockfile
-
-# Copia il codice del backend
-COPY backend ./backend
 
 WORKDIR /app/backend
 

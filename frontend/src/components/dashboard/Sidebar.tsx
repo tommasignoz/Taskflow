@@ -26,14 +26,16 @@ interface SidebarProps {
   onToggleCollapse: () => void;
   mobileOpen: boolean;
   onCloseMobile: () => void;
-  currentView: 'kanban' | 'table' | 'database';
-  onSelectView: (view: 'kanban' | 'table' | 'database') => void;
+  currentView: 'kanban' | 'table' | 'database' | 'auth';
+  onSelectView: (view: 'kanban' | 'table' | 'database' | 'auth') => void;
   activeFilter: FilterStatus;
   onSelectFilter: (filter: FilterStatus) => void;
   stats: TaskStats;
   soundEnabled: boolean;
   onToggleSound: () => void;
   onTestDing: () => void;
+  currentUser?: { name?: string; email?: string } | null;
+  onLogout?: () => void;
 }
 
 export function Sidebar({
@@ -49,6 +51,7 @@ export function Sidebar({
   soundEnabled,
   onToggleSound,
   onTestDing,
+  currentUser,
 }: SidebarProps) {
   return (
     <>
@@ -190,6 +193,38 @@ export function Sidebar({
                 </span>
               )}
             </Button>
+
+            <Button
+              variant={currentView === 'auth' ? 'secondary' : 'ghost'}
+              className={cn(
+                'w-full justify-start h-9 text-cyan-400 hover:text-cyan-300',
+                currentView === 'auth' && 'bg-cyan-950/40 border border-cyan-500/40 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.2)]',
+                collapsed && 'justify-center px-0'
+              )}
+              onClick={() => {
+                onSelectView('auth');
+                onCloseMobile();
+              }}
+              title="Terminale Autenticazione // Better Auth"
+            >
+              <ShieldCheck data-icon="inline-start" className="size-4 text-cyan-400" />
+              {!collapsed && (
+                <span className="flex-1 text-left truncate flex items-center justify-between">
+                  <span className="font-semibold">Neural Auth</span>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'ml-auto text-[9px] h-4 px-1 font-mono tracking-wider',
+                      currentUser
+                        ? 'border-emerald-500/40 text-emerald-300 bg-emerald-950/30'
+                        : 'border-amber-500/40 text-amber-300 bg-amber-950/30'
+                    )}
+                  >
+                    {currentUser ? '200 OK' : '401'}
+                  </Badge>
+                </span>
+              )}
+            </Button>
           </div>
 
           <Separator />
@@ -312,25 +347,43 @@ export function Sidebar({
         {/* Footer User Profile */}
         <div className="border-t p-2">
           <div
+            onClick={() => onSelectView('auth')}
             className={cn(
-              'flex items-center gap-2.5 rounded-lg p-1.5 transition-colors hover:bg-muted/60',
+              'flex items-center gap-2.5 rounded-lg p-1.5 transition-colors hover:bg-muted/60 cursor-pointer',
               collapsed && 'justify-center'
             )}
+            title="Gestisci account operatore"
           >
             <div className="relative">
-              <Avatar className="size-8">
-                <AvatarImage src="" alt="Senior Engineer" />
-                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                  SE
+              <Avatar className="size-8 border border-cyan-500/30">
+                <AvatarImage src="" alt={currentUser?.name || 'Operatore'} />
+                <AvatarFallback className="bg-cyan-950 text-cyan-300 text-xs font-semibold">
+                  {currentUser?.name
+                    ? currentUser.name
+                        .split(' ')
+                        .map((n) => n[0])
+                        .join('')
+                        .slice(0, 2)
+                        .toUpperCase()
+                    : 'G'}
                 </AvatarFallback>
               </Avatar>
-              <span className="absolute bottom-0 right-0 size-2 rounded-full bg-emerald-500 ring-2 ring-card" />
+              <span
+                className={cn(
+                  'absolute bottom-0 right-0 size-2 rounded-full ring-2 ring-card',
+                  currentUser ? 'bg-emerald-500' : 'bg-amber-500'
+                )}
+              />
             </div>
 
             {!collapsed && (
-              <div className="flex flex-col overflow-hidden leading-tight">
-                <span className="truncate text-xs font-medium">Senior Engineer</span>
-                <span className="truncate text-[10px] text-muted-foreground">Lead Frontend UI/UX</span>
+              <div className="flex flex-col overflow-hidden leading-tight flex-1">
+                <span className="truncate text-xs font-medium text-foreground">
+                  {currentUser?.name || 'Ospite / Visitatore'}
+                </span>
+                <span className="truncate text-[10px] text-muted-foreground font-mono">
+                  {currentUser?.email || 'Endpoint /api/me: 401'}
+                </span>
               </div>
             )}
           </div>

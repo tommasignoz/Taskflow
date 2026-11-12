@@ -159,4 +159,24 @@ export const api = {
     }
     return data;
   },
+
+  // Endpoint protetto: verifica autenticazione su /api/me (ritorna 401 Unauthorized se non autenticato)
+  async getMe(): Promise<{ authenticated: boolean; user?: any; session?: any; statusCode: number; error?: string; message?: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/me`, {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      return {
+        ...data,
+        statusCode: res.status,
+      };
+    } catch (err: any) {
+      return {
+        authenticated: false,
+        statusCode: 500,
+        error: err.message || 'Errore di rete',
+      };
+    }
+  },
 };

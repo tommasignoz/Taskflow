@@ -10,13 +10,17 @@ import { EditTaskDialog } from './components/dashboard/EditTaskDialog';
 import { UndoBanner } from './components/dashboard/UndoBanner';
 import { StatusBar } from './components/dashboard/StatusBar';
 import { playDingSound } from './utils/soundEffects';
+import { authClient } from './lib/auth-client';
 import type { Task } from './types/task';
 
 export default function App() {
   const [soundEnabled, setSoundEnabled] = React.useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
-  const [currentView, setCurrentView] = React.useState<'kanban' | 'table' | 'database'>('kanban');
+  const [currentView, setCurrentView] = React.useState<'kanban' | 'table' | 'database' | 'auth'>('kanban');
+
+  // Monitoraggio sessione Better Auth in tempo reale
+  const { data: session } = authClient.useSession();
 
   // Filtri aggiuntivi per la toolbar
   const [selectedPriority, setSelectedPriority] = React.useState<string>('all');
@@ -123,6 +127,7 @@ export default function App() {
           setStatusMessage(next ? 'Audio attivato' : 'Audio disattivato');
         }}
         onTestDing={handleTestDing}
+        currentUser={session?.user || null}
       />
 
       {/* 2. Main Content Area */}
@@ -140,16 +145,18 @@ export default function App() {
           hasCompletedTasks={stats.completed > 0}
           isDarkMode={isDarkMode}
           onToggleDarkMode={() => setIsDarkMode((prev) => !prev)}
+          currentUser={session?.user || null}
+          onOpenAuth={() => setCurrentView('auth')}
         />
 
         {/* Scrollable Dashboard Body */}
         <main className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 md:px-8">
           <div className="mx-auto flex max-w-7xl flex-col gap-5">
-            {/* KPI Cards / Metriche */}
-            <StatsOverview stats={stats} />
+            {/* KPI Cards / Metriche (nascoste durante la schermata auth per non ingombrare) */}
+            {currentView !== 'auth' && <StatsOverview stats={stats} />}
 
             {/* Toolbar: Filtri, Categorie, Ricerca, Ordinamento */}
-            {currentView !== 'database' && (
+            {currentView !== 'database' && currentView !== 'auth' && (
               <TaskToolbar
                 filter={filter}
                 onFilterChange={setFilter}
